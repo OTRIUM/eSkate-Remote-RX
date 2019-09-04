@@ -1,0 +1,4 @@
+LC12S.c:66:9:LC12S_CheckSum_Calculation	16	static
+LC12S.c:73:6:LC12S_Init	8	static
+LC12S.c:102:6:LC12S_Enable_Sleep_Mode	8	static
+LC12S.c:106:6:LC12S_Disable_Sleep_Mode	8	static
