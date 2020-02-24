@@ -133,8 +133,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
-	  dbg = BT05_SetBaud(9600);
+	  dbg = BT05_SetBaud(4800);
 
  	  HAL_Delay(500);
 

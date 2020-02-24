@@ -22,15 +22,17 @@
 
 extern UART_HandleTypeDef huart3;
 
+const uint16_t baudList[5] = {0, 1200, 2400, 4800, 9600};
 uint8_t rxBufUART[RX_BUF_LENGTH];
 
-typedef enum
+typedef enum StatusList
 {
 	OK		 			= 0x00U,
 	ERR_TIMEOUT 		= 0x01U,
 	ERR_STRCMP 			= 0x02U,
 	ERR_BAUD_INCORRECT 	= 0x03U,
-	ERR_SET_BAUD		= 0x04U
+	ERR_SET_BAUD		= 0x04U,
+	ERR_NOT_RESPONDING	= 0x05U
 } StatusList;
 
 
@@ -40,7 +42,7 @@ void UART_SendStringCRLF(char *data, uint8_t len) {
 }
 
 uint8_t UART_ReceiveStringCRLF(uint8_t len) {
-	for(uint8_t i=0; i<RX_BUF_LENGTH; i++)
+	for (uint8_t i=0; i<RX_BUF_LENGTH; i++)
 		rxBufUART[i] = 0;
 	__HAL_UART_FLUSH_DRREGISTER(&huart3);
 	if (HAL_UART_Receive(&huart3, rxBufUART, (len+2), 50) == HAL_OK) {
@@ -61,10 +63,20 @@ void UART_ChangeBaudRate(uint32_t baud) {
 
 uint8_t BT05_CheckPresence(void) {
 	UART_SendStringCRLF("AT", 2);
-	if(!UART_ReceiveStringCRLF(2))
+	if (!UART_ReceiveStringCRLF(2))
 		return (!strcmp("OK", (char*)&rxBufUART)) ? OK : ERR_STRCMP;
 	else
 		return ERR_TIMEOUT;
+}
+
+uint8_t BT05_FindRightBaud(void) {
+	for (uint8_t baudNumber=1; baudNumber<=4; baudNumber++) {
+		UART_ChangeBaudRate(baudList[baudNumber]);
+		if (!BT05_CheckPresence())
+			return baudNumber;
+		HAL_Delay(15);																// Replace with osDelay
+	}
+	return ERR_NOT_RESPONDING;
 }
 
 uint8_t BT05_SetBaud(uint32_t baud) {
@@ -72,35 +84,36 @@ uint8_t BT05_SetBaud(uint32_t baud) {
 	if (!BT05_CheckPresence())
 		return OK;
 	else {
-		HAL_Delay(25);																// Replace with osDelay
-		UART_ChangeBaudRate(4800);
-		if (!BT05_CheckPresence()) {
-			HAL_Delay(25);															// Replace with osDelay
-			char txBufUART[10];
-			uint8_t baudNumber;
-			switch (baud) {
+		HAL_Delay(15);																// Replace with osDelay
+		if (BT05_FindRightBaud() != ERR_NOT_RESPONDING) {
+			HAL_Delay(15);															// Replace with osDelay
+			switch(baud) {
 			case 1200:
-				baudNumber = 1;
+				UART_SendStringCRLF("AT+BAUD1", 8);
 				break;
 			case 2400:
-				baudNumber = 2;
+				UART_SendStringCRLF("AT+BAUD2", 8);
 				break;
 			case 4800:
-				baudNumber = 3;
+				UART_SendStringCRLF("AT+BAUD3", 8);
 				break;
 			case 9600:
-				baudNumber = 4;
+				UART_SendStringCRLF("AT+BAUD4", 8);
 				break;
 			default:
 				return ERR_BAUD_INCORRECT;
 			}
-			sprintf(txBufUART, "AT+BAUD%d", baudNumber);
-			UART_SendStringCRLF(txBufUART, strlen(txBufUART));
-			return (!UART_ReceiveStringCRLF(7) && !strncmp("+BAUD=", (char*)&rxBufUART, 6)) ? OK : ERR_SET_BAUD;
-			UART_ChangeBaudRate(baud);
+			if (!UART_ReceiveStringCRLF(7) && !strncmp("+BAUD=", (char*)&rxBufUART, 6)) {
+				UART_ChangeBaudRate(baud);
+				HAL_Delay(15);													// Replace with osDelay
+				return OK;
+			}
+			else
+				return ERR_SET_BAUD;
 		}
+		else
+			return ERR_NOT_RESPONDING;
 	}
-	return 1;
 }
 
 
