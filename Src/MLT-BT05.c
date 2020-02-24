@@ -42,6 +42,7 @@ void UART_SendStringCRLF(char *data, uint8_t len) {
 uint8_t UART_ReceiveStringCRLF(uint8_t len) {
 	for(uint8_t i=0; i<RX_BUF_LENGTH; i++)
 		rxBufUART[i] = 0;
+	__HAL_UART_FLUSH_DRREGISTER(&huart3);
 	if (HAL_UART_Receive(&huart3, rxBufUART, (len+2), 50) == HAL_OK) {
 		rxBufUART[len] = 0;
 		rxBufUART[len+1] = 0;
@@ -72,43 +73,31 @@ uint8_t BT05_SetBaud(uint32_t baud) {
 		return OK;
 	else {
 		HAL_Delay(25);																// Replace with osDelay
-		UART_ChangeBaudRate(9600);
-
-		UART_SendStringCRLF("AT", 2);
-		uint8_t anusEbanogoPsa[10];
-		for (uint8_t anusCounter=0; anusCounter<10; anusCounter++)
-			anusEbanogoPsa[anusCounter] = 0;
-		HAL_UART_Receive(&huart3, anusEbanogoPsa, 4, 50);
-		if (anusEbanogoPsa[0] == 0)
-			UART_SendStringCRLF("PIZDA", 5);
-
-		HAL_Delay(100);
-
+		UART_ChangeBaudRate(4800);
 		if (!BT05_CheckPresence()) {
 			HAL_Delay(25);															// Replace with osDelay
 			char txBufUART[10];
 			uint8_t baudNumber;
 			switch (baud) {
-			case 115200:
-				baudNumber = 0;
-			case 57600:
+			case 1200:
 				baudNumber = 1;
-			case 38400:
+				break;
+			case 2400:
 				baudNumber = 2;
-			case 19200:
+				break;
+			case 4800:
 				baudNumber = 3;
+				break;
 			case 9600:
 				baudNumber = 4;
+				break;
 			default:
 				return ERR_BAUD_INCORRECT;
 			}
 			sprintf(txBufUART, "AT+BAUD%d", baudNumber);
 			UART_SendStringCRLF(txBufUART, strlen(txBufUART));
+			return (!UART_ReceiveStringCRLF(7) && !strncmp("+BAUD=", (char*)&rxBufUART, 6)) ? OK : ERR_SET_BAUD;
 			UART_ChangeBaudRate(baud);
-			if (!UART_ReceiveStringCRLF(7) && !strcmp("+BAUD=", (char*)&rxBufUART))
-				return OK;
-			else
-				return ERR_SET_BAUD;
 		}
 	}
 	return 1;

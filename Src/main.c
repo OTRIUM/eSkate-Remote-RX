@@ -62,7 +62,7 @@ UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
 
-uint8_t dbg = 0;
+uint32_t dbg = 0;
 
 /* USER CODE END PV */
 
@@ -134,7 +134,7 @@ int main(void)
   while (1)
   {
 
-	  BT05_SetBaud(115200);
+	  dbg = BT05_SetBaud(9600);
 
  	  HAL_Delay(500);
 
@@ -435,7 +435,7 @@ static void MX_USART3_UART_Init(void)
 
   /* USER CODE END USART3_Init 1 */
   huart3.Instance = USART3;
-  huart3.Init.BaudRate = 115200;
+  huart3.Init.BaudRate = 9600;
   huart3.Init.WordLength = UART_WORDLENGTH_8B;
   huart3.Init.StopBits = UART_STOPBITS_1;
   huart3.Init.Parity = UART_PARITY_NONE;
