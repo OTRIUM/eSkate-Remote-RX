@@ -11,7 +11,7 @@
 *********************************************/
 
 #define HUART_NUMBER		huart3
-#define RX_BUF_LENGTH		10
+#define UART_BUF_LENGTH		16
 
 #include "main.h"
 #include "MLT-BT05.h"
@@ -22,7 +22,7 @@
 
 extern UART_HandleTypeDef HUART_NUMBER;
 
-uint8_t rxBufUART[RX_BUF_LENGTH];
+uint8_t rxBufUART[UART_BUF_LENGTH];
 
 
 const uint32_t baudList[5] = {9600, 19200, 38400, 57600, 115200};					// Supported baud rates
@@ -35,6 +35,9 @@ typedef enum StatusList
 	ERR_BAUD_INCORRECT 	= 0x03U,
 	ERR_SET_BAUD		= 0x04U,
 	ERR_NO_BAUD_ACK		= 0x05U,
+	ERR_TOO_LONG		= 0x06U,
+	ERR_SET_NAME		= 0x07U,
+	ERR_NAME_ACK		= 0x08U,
 	ERR_NO_RESPONSE		= 0x09U
 } StatusList;
 
@@ -45,7 +48,7 @@ void UART_SendStringCRLF(char *data, uint8_t len) {
 }
 
 uint8_t UART_ReceiveStringCRLF(uint8_t len) {
-	for (uint8_t i=0; i<RX_BUF_LENGTH; i++)
+	for (uint8_t i=0; i<UART_BUF_LENGTH; i++)
 		rxBufUART[i] = 0;
 	__HAL_UART_FLUSH_DRREGISTER(&HUART_NUMBER);
 	if (HAL_UART_Receive(&HUART_NUMBER, rxBufUART, (len+2), 50) == HAL_OK) {
@@ -122,7 +125,35 @@ uint8_t BT05_SetBaud(uint32_t baud) {
 	}
 }
 
+uint8_t BT05_CheckName(char *data, uint8_t len) {
+	UART_SendStringCRLF("AT+NAME", 7);
+	if (!UART_ReceiveStringCRLF(6+len)) {
+		for (uint8_t i=6; i<UART_BUF_LENGTH; i++) {
+			rxBufUART[i-6] = rxBufUART[i];
+			rxBufUART[i] = 0;
+		}
+		return (!strcmp(data, (char*)&rxBufUART)) ? OK : ERR_STRCMP;
+	}
+	else
+		return ERR_TIMEOUT;
+}
 
-
+uint8_t BT05_SetName(char *data, uint8_t len) {
+	if (strlen(data) > 8)
+		return ERR_TOO_LONG;
+	if (!BT05_CheckName(data, len))
+		return OK;
+	char txBufUART[UART_BUF_LENGTH];
+	for (uint8_t i=0; i<UART_BUF_LENGTH; i++)
+			txBufUART[i] = 0;
+	sprintf(txBufUART, "AT+NAME%s", data);
+	UART_SendStringCRLF(txBufUART, strlen(txBufUART));
+	if (!UART_ReceiveStringCRLF(6+len)) {
+		sprintf(txBufUART, "+NAME=%s", data);
+		return (!strcmp(txBufUART, (char*)&rxBufUART)) ? OK : ERR_NAME_ACK;
+	}
+	else
+		return ERR_SET_NAME;
+}
 
 
