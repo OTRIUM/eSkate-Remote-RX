@@ -10,13 +10,19 @@
 
 #include "stm32f1xx_hal.h"
 
-uint8_t LC12S_CheckSum_Calculation(void);
 
 void UART_SendStringCRLF(char *data, uint8_t len);
+
 uint8_t UART_ReceiveStringCRLF(uint8_t len);
+
 void UART_ChangeBaudRate(uint32_t baud);
+
 uint8_t BT05_CheckPresence(void);
+
+uint8_t BT05_FindRightBaud(void);
+
 uint8_t BT05_SetBaud(uint32_t baud);
+
 
 
 #endif

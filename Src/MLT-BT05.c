@@ -5,13 +5,13 @@
  * @date     23. February 2020
  ******************************************************************************/
 
-/***************************************
-     MLT-BT05 BLE Module HAL Library
+/*********************************************
+     BT05 (CC41-A) BLE Module HAL Library
      for USART Full-Duplex mode
-***************************************/
+*********************************************/
 
+#define HUART_NUMBER		huart3
 #define RX_BUF_LENGTH		10
-
 
 #include "main.h"
 #include "MLT-BT05.h"
@@ -20,10 +20,12 @@
 #include <string.h>
 #include <stdio.h>
 
-extern UART_HandleTypeDef huart3;
+extern UART_HandleTypeDef HUART_NUMBER;
 
-const uint16_t baudList[5] = {0, 1200, 2400, 4800, 9600};
 uint8_t rxBufUART[RX_BUF_LENGTH];
+
+
+const uint32_t baudList[5] = {9600, 19200, 38400, 57600, 115200};					// Supported baud rates
 
 typedef enum StatusList
 {
@@ -32,20 +34,21 @@ typedef enum StatusList
 	ERR_STRCMP 			= 0x02U,
 	ERR_BAUD_INCORRECT 	= 0x03U,
 	ERR_SET_BAUD		= 0x04U,
-	ERR_NOT_RESPONDING	= 0x05U
+	ERR_NO_BAUD_ACK		= 0x05U,
+	ERR_NO_RESPONSE		= 0x09U
 } StatusList;
 
 
 void UART_SendStringCRLF(char *data, uint8_t len) {
-	HAL_UART_Transmit(&huart3, (uint8_t*)data, len, 50);
-	HAL_UART_Transmit(&huart3, (uint8_t*)"\r\n", 2, 50);
+	HAL_UART_Transmit(&HUART_NUMBER, (uint8_t*)data, len, 50);
+	HAL_UART_Transmit(&HUART_NUMBER, (uint8_t*)"\r\n", 2, 50);
 }
 
 uint8_t UART_ReceiveStringCRLF(uint8_t len) {
 	for (uint8_t i=0; i<RX_BUF_LENGTH; i++)
 		rxBufUART[i] = 0;
-	__HAL_UART_FLUSH_DRREGISTER(&huart3);
-	if (HAL_UART_Receive(&huart3, rxBufUART, (len+2), 50) == HAL_OK) {
+	__HAL_UART_FLUSH_DRREGISTER(&HUART_NUMBER);
+	if (HAL_UART_Receive(&HUART_NUMBER, rxBufUART, (len+2), 50) == HAL_OK) {
 		rxBufUART[len] = 0;
 		rxBufUART[len+1] = 0;
 		return OK;
@@ -55,8 +58,8 @@ uint8_t UART_ReceiveStringCRLF(uint8_t len) {
 }
 
 void UART_ChangeBaudRate(uint32_t baud) {
-	huart3.Init.BaudRate = baud;
-	HAL_UART_Init(&huart3);
+	HUART_NUMBER.Init.BaudRate = baud;
+	HAL_UART_Init(&HUART_NUMBER);
 	for (uint16_t i=0; i<100; i++)
 		__NOP();
 }
@@ -70,13 +73,13 @@ uint8_t BT05_CheckPresence(void) {
 }
 
 uint8_t BT05_FindRightBaud(void) {
-	for (uint8_t baudNumber=1; baudNumber<=4; baudNumber++) {
-		UART_ChangeBaudRate(baudList[baudNumber]);
+	for (uint8_t baudNumber=4; baudNumber<9; baudNumber++) {
+		UART_ChangeBaudRate(baudList[baudNumber-4]);
 		if (!BT05_CheckPresence())
 			return baudNumber;
-		HAL_Delay(15);																// Replace with osDelay
+		HAL_Delay(10);																// Replace with osDelay
 	}
-	return ERR_NOT_RESPONDING;
+	return ERR_NO_RESPONSE;
 }
 
 uint8_t BT05_SetBaud(uint32_t baud) {
@@ -84,35 +87,38 @@ uint8_t BT05_SetBaud(uint32_t baud) {
 	if (!BT05_CheckPresence())
 		return OK;
 	else {
-		HAL_Delay(15);																// Replace with osDelay
-		if (BT05_FindRightBaud() != ERR_NOT_RESPONDING) {
-			HAL_Delay(15);															// Replace with osDelay
+		HAL_Delay(10);																// Replace with osDelay
+		if (BT05_FindRightBaud() != ERR_NO_RESPONSE) {
+			HAL_Delay(10);															// Replace with osDelay
 			switch(baud) {
-			case 1200:
-				UART_SendStringCRLF("AT+BAUD1", 8);
-				break;
-			case 2400:
-				UART_SendStringCRLF("AT+BAUD2", 8);
-				break;
-			case 4800:
-				UART_SendStringCRLF("AT+BAUD3", 8);
-				break;
 			case 9600:
 				UART_SendStringCRLF("AT+BAUD4", 8);
+				break;
+			case 19200:
+				UART_SendStringCRLF("AT+BAUD5", 8);
+				break;
+			case 38400:
+				UART_SendStringCRLF("AT+BAUD6", 8);
+				break;
+			case 57600:
+				UART_SendStringCRLF("AT+BAUD7", 8);
+				break;
+			case 115200:
+				UART_SendStringCRLF("AT+BAUD8", 8);
 				break;
 			default:
 				return ERR_BAUD_INCORRECT;
 			}
 			if (!UART_ReceiveStringCRLF(7) && !strncmp("+BAUD=", (char*)&rxBufUART, 6)) {
 				UART_ChangeBaudRate(baud);
-				HAL_Delay(15);													// Replace with osDelay
-				return OK;
+				HAL_Delay(200);														// Replace with osDelay
+				return !BT05_CheckPresence() ? OK : ERR_NO_BAUD_ACK;
 			}
 			else
 				return ERR_SET_BAUD;
 		}
 		else
-			return ERR_NOT_RESPONDING;
+			return ERR_NO_RESPONSE;
 	}
 }
 
