@@ -42,7 +42,8 @@ typedef enum StatusList
 } StatusList;
 
 
-void UART_SendStringCRLF(char *data, uint8_t len) {
+void UART_SendStringCRLF(char *data) {
+	uint8_t len = strlen(data);
 	HAL_UART_Transmit(&HUART_NUMBER, (uint8_t*)data, len, 50);
 	HAL_UART_Transmit(&HUART_NUMBER, (uint8_t*)"\r\n", 2, 50);
 }
@@ -68,7 +69,7 @@ void UART_ChangeBaudRate(uint32_t baud) {
 }
 
 uint8_t BT05_CheckPresence(void) {
-	UART_SendStringCRLF("AT", 2);
+	UART_SendStringCRLF("AT");
 	if (!UART_ReceiveStringCRLF(2))
 		return (!strcmp("OK", (char*)&rxBufUART)) ? OK : ERR_STRCMP;
 	else
@@ -95,19 +96,19 @@ uint8_t BT05_SetBaud(uint32_t baud) {
 			HAL_Delay(10);															// Replace with osDelay
 			switch(baud) {
 			case 9600:
-				UART_SendStringCRLF("AT+BAUD4", 8);
+				UART_SendStringCRLF("AT+BAUD4");
 				break;
 			case 19200:
-				UART_SendStringCRLF("AT+BAUD5", 8);
+				UART_SendStringCRLF("AT+BAUD5");
 				break;
 			case 38400:
-				UART_SendStringCRLF("AT+BAUD6", 8);
+				UART_SendStringCRLF("AT+BAUD6");
 				break;
 			case 57600:
-				UART_SendStringCRLF("AT+BAUD7", 8);
+				UART_SendStringCRLF("AT+BAUD7");
 				break;
 			case 115200:
-				UART_SendStringCRLF("AT+BAUD8", 8);
+				UART_SendStringCRLF("AT+BAUD8");
 				break;
 			default:
 				return ERR_BAUD_INCORRECT;
@@ -125,8 +126,9 @@ uint8_t BT05_SetBaud(uint32_t baud) {
 	}
 }
 
-uint8_t BT05_CheckName(char *data, uint8_t len) {
-	UART_SendStringCRLF("AT+NAME", 7);
+uint8_t BT05_CheckName(char *data) {
+	uint8_t len = strlen(data);
+	UART_SendStringCRLF("AT+NAME");
 	if (!UART_ReceiveStringCRLF(6+len)) {
 		for (uint8_t i=6; i<UART_BUF_LENGTH; i++) {
 			rxBufUART[i-6] = rxBufUART[i];
@@ -138,16 +140,17 @@ uint8_t BT05_CheckName(char *data, uint8_t len) {
 		return ERR_TIMEOUT;
 }
 
-uint8_t BT05_SetName(char *data, uint8_t len) {
-	if (strlen(data) > 8)
+uint8_t BT05_SetName(char *data) {
+	uint8_t len = strlen(data);
+	if (len > 8)
 		return ERR_TOO_LONG;
-	if (!BT05_CheckName(data, len))
+	if (!BT05_CheckName(data))
 		return OK;
 	char txBufUART[UART_BUF_LENGTH];
 	for (uint8_t i=0; i<UART_BUF_LENGTH; i++)
 			txBufUART[i] = 0;
 	sprintf(txBufUART, "AT+NAME%s", data);
-	UART_SendStringCRLF(txBufUART, strlen(txBufUART));
+	UART_SendStringCRLF(txBufUART);
 	if (!UART_ReceiveStringCRLF(6+len)) {
 		sprintf(txBufUART, "+NAME=%s", data);
 		return (!strcmp(txBufUART, (char*)&rxBufUART)) ? OK : ERR_NAME_ACK;

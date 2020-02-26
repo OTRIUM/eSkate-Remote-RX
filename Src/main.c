@@ -137,7 +137,7 @@ int main(void)
 
 	  HAL_Delay(1);
 
-	  dbg = BT05_SetName("eSkateRX", 8);
+	  dbg = BT05_SetName("eSkateRX");
 
  	  HAL_Delay(500);
 

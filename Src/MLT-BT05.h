@@ -11,7 +11,7 @@
 #include "stm32f1xx_hal.h"
 
 
-void UART_SendStringCRLF(char *data, uint8_t len);
+void UART_SendStringCRLF(char *data);
 
 uint8_t UART_ReceiveStringCRLF(uint8_t len);
 
@@ -23,8 +23,8 @@ uint8_t BT05_FindRightBaud(void);
 
 uint8_t BT05_SetBaud(uint32_t baud);
 
-uint8_t BT05_CheckName(char *data, uint8_t len);
+uint8_t BT05_CheckName(char *data);
 
-uint8_t BT05_SetName(char *data, uint8_t len);
+uint8_t BT05_SetName(char *data);
 
 #endif
