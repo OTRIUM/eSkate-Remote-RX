@@ -28,7 +28,8 @@
 
 #define __PWR_LED_ON		HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET)
 #define __PWR_LED_OFF		HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET)
-
+#define __BLE_LED_ON		HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_SET);
+#define __BLE_LED_OFF		HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
 
 /* USER CODE END Includes */
 
@@ -125,6 +126,15 @@ int main(void)
 
   __PWR_LED_ON;
 
+
+  if (!BT05_Configure()) {
+	  HAL_Delay(5);
+  	  BT05_GetAddress();
+  	  __BLE_LED_ON;
+  }
+
+
+
   /* USER CODE END 2 */
  
  
@@ -133,21 +143,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  dbg = BT05_SetBaud(38400);
 
-	  HAL_Delay(5);
-
-	  dbg = BT05_SetName("eSkateRX");
-
-	  HAL_Delay(5);
-
-	  dbg = BT05_SetPin("2004889");
-
-	  HAL_Delay(5);
-
-	  dbg = BT05_SetRole("0");
-
- 	  HAL_Delay(500);
+	  HAL_Delay(500);
 
 
     /* USER CODE END WHILE */
@@ -446,7 +443,7 @@ static void MX_USART3_UART_Init(void)
 
   /* USER CODE END USART3_Init 1 */
   huart3.Instance = USART3;
-  huart3.Init.BaudRate = 9600;
+  huart3.Init.BaudRate = 38400;
   huart3.Init.WordLength = UART_WORDLENGTH_8B;
   huart3.Init.StopBits = UART_STOPBITS_1;
   huart3.Init.Parity = UART_PARITY_NONE;

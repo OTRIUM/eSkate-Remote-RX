@@ -1,5 +1,5 @@
-/**************************************************************************//**
- * @file     BT-05.h
+/******************************************************************************
+ * @file     MLT-BT05.h
  * @brief    BT-05 Library header
  * @version  V1.00
  * @date     23. February 2020
@@ -10,6 +10,9 @@
 
 #include "stm32f1xx_hal.h"
 
+uint8_t BT05_Configure(void);
+
+uint8_t BT05_SendCommands(void);
 
 void UART_SendStringCRLF(char *data);
 
@@ -34,5 +37,19 @@ uint8_t BT05_SetPin(char *data);
 uint8_t BT05_CheckRole(char *data);
 
 uint8_t BT05_SetRole(char *data);
+
+uint8_t BT05_CheckUUID(char *data);
+
+uint8_t BT05_SetUUID(char *data);
+
+uint8_t BT05_CheckCHAR(char *data);
+
+uint8_t BT05_SetCHAR(char *data);
+
+uint8_t BT05_CheckNoti(char *data);
+
+uint8_t BT05_SetNoti(char *data);
+
+uint8_t BT05_GetAddress(void);
 
 #endif
