@@ -8,17 +8,15 @@
 #ifndef MLTBT05_H
 #define MLTBT05_H
 
-#include "stm32f1xx_hal.h"
-
 uint8_t BT05_Configure(void);
 
 uint8_t BT05_SendCommands(void);
 
-void UART_SendStringCRLF(char *data);
+void BT05_UART_SendStringCRLF(char *data);
 
-uint8_t UART_ReceiveStringCRLF(uint8_t len);
+uint8_t BT05_UART_ReceiveStringCRLF(uint8_t len);
 
-void UART_ChangeBaudRate(uint32_t baud);
+void BT05_UART_ChangeBaudRate(uint32_t baud);
 
 uint8_t BT05_CheckPresence(void);
 

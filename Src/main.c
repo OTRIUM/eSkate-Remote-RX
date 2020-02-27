@@ -25,11 +25,15 @@
 /* USER CODE BEGIN Includes */
 
 #include "MLT-BT05.h"
+#include "JDY40.h"
 
 #define __PWR_LED_ON		HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET)
 #define __PWR_LED_OFF		HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET)
-#define __BLE_LED_ON		HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_SET);
-#define __BLE_LED_OFF		HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
+#define __BLE_LED_ON		HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_SET)
+#define __BLE_LED_OFF		HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_RESET)
+#define __RC_LED_ON			HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET)
+#define __RC_LED_OFF		HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET)
+
 
 /* USER CODE END Includes */
 
@@ -126,18 +130,19 @@ int main(void)
 
   __PWR_LED_ON;
 
-
   if (!BT05_Configure()) {
 	  HAL_Delay(5);
   	  BT05_GetAddress();
   	  __BLE_LED_ON;
   }
 
+  if (!JDY40_Configure())
+	  __RC_LED_ON;
 
 
   /* USER CODE END 2 */
- 
- 
+
+
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
