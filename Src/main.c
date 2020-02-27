@@ -135,9 +135,17 @@ int main(void)
   {
 	  dbg = BT05_SetBaud(38400);
 
-	  HAL_Delay(1);
+	  HAL_Delay(5);
 
 	  dbg = BT05_SetName("eSkateRX");
+
+	  HAL_Delay(5);
+
+	  dbg = BT05_SetPin("2004889");
+
+	  HAL_Delay(5);
+
+	  dbg = BT05_SetRole("0");
 
  	  HAL_Delay(500);
 

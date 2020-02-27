@@ -27,4 +27,12 @@ uint8_t BT05_CheckName(char *data);
 
 uint8_t BT05_SetName(char *data);
 
+uint8_t BT05_CheckPin(char *data);
+
+uint8_t BT05_SetPin(char *data);
+
+uint8_t BT05_CheckRole(char *data);
+
+uint8_t BT05_SetRole(char *data);
+
 #endif

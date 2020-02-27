@@ -38,7 +38,13 @@ typedef enum StatusList
 	ERR_TOO_LONG		= 0x06U,
 	ERR_SET_NAME		= 0x07U,
 	ERR_NAME_ACK		= 0x08U,
-	ERR_NO_RESPONSE		= 0x09U
+	ERR_NO_RESPONSE		= 0x09U,
+	ERR_PIN_LEN			= 0x0AU,
+	ERR_PIN_ACK			= 0x0BU,
+	ERR_SET_PIN			= 0x0CU,
+	ERR_ROLE_LEN		= 0x0DU,
+	ERR_ROLE_ACK		= 0x0EU,
+	ERR_SET_ROLE		= 0x0FU
 } StatusList;
 
 
@@ -159,4 +165,63 @@ uint8_t BT05_SetName(char *data) {
 		return ERR_SET_NAME;
 }
 
+uint8_t BT05_CheckPin(char *data) {
+	uint8_t len = strlen(data);
+	UART_SendStringCRLF("AT+PIN");
+	if (!UART_ReceiveStringCRLF(5+len)) {
+		for (uint8_t i=5; i<UART_BUF_LENGTH; i++) {
+			rxBufUART[i-5] = rxBufUART[i];
+			rxBufUART[i] = 0;
+		}
+		return (!strcmp(data, (char*)&rxBufUART)) ? OK : ERR_STRCMP;
+	}
+	else
+		return ERR_TIMEOUT;
+}
 
+uint8_t BT05_SetPin(char *data) {
+	uint8_t len = strlen(data);
+	if (len != 6)
+		return ERR_PIN_LEN;
+	if (!BT05_CheckPin(data))
+		return OK;
+	char txBufUART[UART_BUF_LENGTH];
+	for (uint8_t i=0; i<UART_BUF_LENGTH; i++)
+		txBufUART[i] = 0;
+	sprintf(txBufUART, "AT+PIN%s", data);
+	UART_SendStringCRLF(txBufUART);
+	if (!UART_ReceiveStringCRLF(5+len)) {
+		sprintf(txBufUART, "+PIN=%s", data);
+		return (!strcmp(txBufUART, (char*)&rxBufUART)) ? OK : ERR_PIN_ACK;
+	}
+	else
+		return ERR_SET_PIN;
+}
+
+uint8_t BT05_CheckRole(char *data) {
+	uint8_t len = strlen(data);
+	UART_SendStringCRLF("AT+ROLE");
+	if (!UART_ReceiveStringCRLF(6+len))
+		return (data[0] == rxBufUART[6]) ? OK : ERR_STRCMP;
+	else
+		return ERR_TIMEOUT;
+}
+
+uint8_t BT05_SetRole(char *data) {
+	uint8_t len = strlen(data);
+	if (len != 1)
+		return ERR_ROLE_LEN;
+	if (!BT05_CheckRole(data))
+		return OK;
+	char txBufUART[UART_BUF_LENGTH];
+	for (uint8_t i=0; i<UART_BUF_LENGTH; i++)
+		txBufUART[i] = 0;
+	sprintf(txBufUART, "AT+ROLE%s", data);
+	UART_SendStringCRLF(txBufUART);
+	if (!UART_ReceiveStringCRLF(6+len)) {
+		sprintf(txBufUART, "+ROLE=%s", data);
+		return (!strcmp(txBufUART, (char*)&rxBufUART)) ? OK : ERR_ROLE_ACK;
+	}
+	else
+		return ERR_SET_ROLE;
+}
