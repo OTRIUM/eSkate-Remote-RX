@@ -20,6 +20,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -31,8 +32,10 @@
 #define __PWR_LED_OFF		HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET)
 #define __BLE_LED_ON		HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_SET)
 #define __BLE_LED_OFF		HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, GPIO_PIN_RESET)
+#define __BLE_LED_TOGGLE	HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin)
 #define __RC_LED_ON			HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET)
 #define __RC_LED_OFF		HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET)
+#define __RC_LED_TOGGLE		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin)
 
 
 /* USER CODE END Includes */
@@ -65,7 +68,52 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 
+/* Definitions for defaultTask */
+osThreadId_t defaultTaskHandle;
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128
+};
+/* Definitions for bluetoothTask */
+osThreadId_t bluetoothTaskHandle;
+const osThreadAttr_t bluetoothTask_attributes = {
+  .name = "bluetoothTask",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128
+};
+/* Definitions for radioTask */
+osThreadId_t radioTaskHandle;
+const osThreadAttr_t radioTask_attributes = {
+  .name = "radioTask",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128
+};
+/* Definitions for telemetryTask */
+osThreadId_t telemetryTaskHandle;
+const osThreadAttr_t telemetryTask_attributes = {
+  .name = "telemetryTask",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128
+};
+/* Definitions for i2cTask */
+osThreadId_t i2cTaskHandle;
+const osThreadAttr_t i2cTask_attributes = {
+  .name = "i2cTask",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128
+};
+/* Definitions for adcTask */
+osThreadId_t adcTaskHandle;
+const osThreadAttr_t adcTask_attributes = {
+  .name = "adcTask",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128
+};
 /* USER CODE BEGIN PV */
+
+uint8_t radioIsConfigured = 0;
+uint8_t bluetoothIsConfigured = 0;
 
 uint32_t dbg = 0;
 
@@ -81,6 +129,13 @@ static void MX_TIM3_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_CRC_Init(void);
+void StartDefaultTask(void *argument);
+void StartBluetoothTask(void *argument);
+void StartRadioTask(void *argument);
+void StartTelemetryTask(void *argument);
+void StartI2cTask(void *argument);
+void StartAdcTask(void *argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -128,29 +183,67 @@ int main(void)
   MX_CRC_Init();
   /* USER CODE BEGIN 2 */
 
-  __PWR_LED_ON;
+  if (!JDY40_Configure())
+	  radioIsConfigured = 1;
 
   if (!BT05_Configure()) {
 	  HAL_Delay(5);
   	  BT05_GetAddress();
-  	  __BLE_LED_ON;
+  	  bluetoothIsConfigured = 1;
   }
 
-  if (!JDY40_Configure())
-	  __RC_LED_ON;
-
-
   /* USER CODE END 2 */
+  /* Init scheduler */
+  osKernelInitialize();
 
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
 
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of defaultTask */
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+  /* creation of bluetoothTask */
+  bluetoothTaskHandle = osThreadNew(StartBluetoothTask, NULL, &bluetoothTask_attributes);
+
+  /* creation of radioTask */
+  radioTaskHandle = osThreadNew(StartRadioTask, NULL, &radioTask_attributes);
+
+  /* creation of telemetryTask */
+  telemetryTaskHandle = osThreadNew(StartTelemetryTask, NULL, &telemetryTask_attributes);
+
+  /* creation of i2cTask */
+  i2cTaskHandle = osThreadNew(StartI2cTask, NULL, &i2cTask_attributes);
+
+  /* creation of adcTask */
+  adcTaskHandle = osThreadNew(StartAdcTask, NULL, &adcTask_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* Start scheduler */
+  osKernelStart();
+ 
+  /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
-	  HAL_Delay(500);
-
 
     /* USER CODE END WHILE */
 
@@ -503,6 +596,160 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used 
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+
+	__PWR_LED_ON;
+
+	/* Infinite loop */
+	for(;;)
+	{
+		osDelay(1);
+	}
+  /* USER CODE END 5 */ 
+}
+
+/* USER CODE BEGIN Header_StartBluetoothTask */
+/**
+* @brief Function implementing the bluetoothTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartBluetoothTask */
+void StartBluetoothTask(void *argument)
+{
+  /* USER CODE BEGIN StartBluetoothTask */
+
+	if (bluetoothIsConfigured)
+		__BLE_LED_ON;
+
+	/* Infinite loop */
+	for(;;)
+	{
+		if (!bluetoothIsConfigured) {
+			__BLE_LED_TOGGLE;
+			osDelay(200);
+			continue;
+		}
+
+		osDelay(500);
+	}
+
+  /* USER CODE END StartBluetoothTask */
+}
+
+/* USER CODE BEGIN Header_StartRadioTask */
+/**
+* @brief Function implementing the radioTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartRadioTask */
+void StartRadioTask(void *argument)
+{
+  /* USER CODE BEGIN StartRadioTask */
+
+	if (radioIsConfigured)
+		__RC_LED_ON;
+
+	/* Infinite loop */
+	for(;;)
+	{
+		if (!radioIsConfigured) {
+			__RC_LED_TOGGLE;
+			osDelay(200);
+			continue;
+		}
+
+		osDelay(500);
+	}
+
+  /* USER CODE END StartRadioTask */
+}
+
+/* USER CODE BEGIN Header_StartTelemetryTask */
+/**
+* @brief Function implementing the telemetryTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTelemetryTask */
+void StartTelemetryTask(void *argument)
+{
+  /* USER CODE BEGIN StartTelemetryTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartTelemetryTask */
+}
+
+/* USER CODE BEGIN Header_StartI2cTask */
+/**
+* @brief Function implementing the i2cTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartI2cTask */
+void StartI2cTask(void *argument)
+{
+  /* USER CODE BEGIN StartI2cTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartI2cTask */
+}
+
+/* USER CODE BEGIN Header_StartAdcTask */
+/**
+* @brief Function implementing the adcTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartAdcTask */
+void StartAdcTask(void *argument)
+{
+  /* USER CODE BEGIN StartAdcTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartAdcTask */
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM1 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM1) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.

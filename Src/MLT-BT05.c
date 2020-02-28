@@ -70,7 +70,7 @@ typedef enum BT05_StatusList
 } BT05_StatusList;
 
 uint8_t BT05_Configure(void) {														// Configure the module using AT-commands
-	HAL_Delay(250);																	// Replace with osDelay
+	HAL_Delay(250);
 	if (!BT05_SendCommands())
 		return OK;
 	HAL_Delay(100);
@@ -80,29 +80,29 @@ uint8_t BT05_Configure(void) {														// Configure the module using AT-com
 uint8_t BT05_SendCommands(void) {													// Send configuration commands
 	uint8_t errCounter = 0;
 	errCounter += BT05_SetBaud(BT05_DESIRED_BAUD);
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	errCounter += BT05_SetName(BT05_DESIRED_NAME);
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	errCounter += BT05_SetPin(BT05_DESIRED_PIN);
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	errCounter += BT05_SetRole(BT05_DESIRED_ROLE);
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	errCounter += BT05_SetUUID(BT05_DESIRED_UUID);
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	errCounter += BT05_SetCHAR(BT05_DESIRED_CHAR);
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	errCounter += BT05_SetNoti(BT05_DESIRED_NOTI);
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	return errCounter;
 }
 
-void BT05_UART_SendStringCRLF(char *data) {												// Send a string of chars with CR&LF
+void BT05_UART_SendStringCRLF(char *data) {											// Send a string of chars with CR&LF
 	uint8_t len = strlen(data);
 	HAL_UART_Transmit(&BT05_HUART_NUMBER, (uint8_t*)data, len, 50);
 	HAL_UART_Transmit(&BT05_HUART_NUMBER, (uint8_t*)"\r\n", 2, 50);
 }
 
-uint8_t BT05_UART_ReceiveStringCRLF(uint8_t len) {										// Receive N bytes of data
+uint8_t BT05_UART_ReceiveStringCRLF(uint8_t len) {									// Receive N bytes of data
 	for (uint8_t i=0; i<BT05_UART_BUF_LENGTH; i++)
 		rxBufUART[i] = 0;
 	__HAL_UART_FLUSH_DRREGISTER(&BT05_HUART_NUMBER);
@@ -114,7 +114,7 @@ uint8_t BT05_UART_ReceiveStringCRLF(uint8_t len) {										// Receive N bytes o
 	return ERR_TIMEOUT;
 }
 
-void BT05_UART_ChangeBaudRate(uint32_t baud) {											// Change the baudrate of selected UART
+void BT05_UART_ChangeBaudRate(uint32_t baud) {										// Change the baudrate of selected UART
 	BT05_HUART_NUMBER.Init.BaudRate = baud;
 	HAL_UART_Init(&BT05_HUART_NUMBER);
 	for (uint16_t i=0; i<100; i++)
@@ -133,7 +133,7 @@ uint8_t BT05_FindRightBaud(void) {													// Find correct baudrate using br
 		BT05_UART_ChangeBaudRate(baudList[baudNumber-4]);
 		if (!BT05_CheckPresence())
 			return baudNumber;
-		HAL_Delay(10);																// Replace with osDelay
+		HAL_Delay(10);
 	}
 	return ERR_NO_RESPONSE;
 }
@@ -142,9 +142,9 @@ uint8_t BT05_SetBaud(uint32_t baud) {												// Set the module to desired ba
 	BT05_UART_ChangeBaudRate(baud);
 	if (!BT05_CheckPresence())
 		return OK;
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	if (BT05_FindRightBaud() != ERR_NO_RESPONSE) {
-		HAL_Delay(10);																// Replace with osDelay
+		HAL_Delay(10);
 		switch(baud) {
 		case 9600:
 			BT05_UART_SendStringCRLF("AT+BAUD4");
@@ -166,7 +166,7 @@ uint8_t BT05_SetBaud(uint32_t baud) {												// Set the module to desired ba
 		}
 		if (!BT05_UART_ReceiveStringCRLF(7) && !strncmp("+BAUD=", (char*)&rxBufUART, 6)) {
 			BT05_UART_ChangeBaudRate(baud);
-			HAL_Delay(200);															// Replace with osDelay
+			HAL_Delay(200);
 			return !BT05_CheckPresence() ? OK : ERR_NO_BAUD_ACK;
 		}
 		return ERR_SET_BAUD;
@@ -200,7 +200,7 @@ uint8_t BT05_SetName(char *data) {													// Set new name to the module
 	BT05_UART_SendStringCRLF(txBufUART);
 	if (!BT05_UART_ReceiveStringCRLF(6+len)) {
 		sprintf(txBufUART, "+NAME=%s", data);
-		HAL_Delay(150);																// Replace with osDelay
+		HAL_Delay(150);
 		return (!strcmp(txBufUART, (char*)&rxBufUART)) ? OK : ERR_NAME_ACK;
 	}
 	return ERR_SET_NAME;
@@ -258,7 +258,7 @@ uint8_t BT05_SetRole(char *data) {													// Set the role of the module (0 
 	BT05_UART_SendStringCRLF(txBufUART);
 	if (!BT05_UART_ReceiveStringCRLF(6+len)) {
 		sprintf(txBufUART, "+ROLE=%s", data);
-		HAL_Delay(700);																// Replace with osDelay
+		HAL_Delay(700);
 		return (!strcmp(txBufUART, (char*)&rxBufUART)) ? OK : ERR_ROLE_ACK;
 	}
 	return ERR_SET_ROLE;
@@ -347,7 +347,7 @@ uint8_t BT05_SetNoti(char *data) {													// Turn on or off notification ab
 	BT05_UART_SendStringCRLF(txBufUART);
 	if (!BT05_UART_ReceiveStringCRLF(6+len)) {
 		sprintf(txBufUART, "+NOTI=%s", data);
-		HAL_Delay(50);																// Replace with osDelay
+		HAL_Delay(50);
 		return (!strcmp(txBufUART, (char*)&rxBufUART)) ? OK : ERR_NOTI_ACK;
 	}
 	return ERR_SET_NOTI;

@@ -12,12 +12,12 @@
 
 #define JDY40_HUART_NUMBER			huart1
 
-#define JDY40_DESIRED_BAUD			9600												// 2400 - 4800 - 9600 - 14400 - 19200
-#define JDY40_DESIRED_RFID			"1488"												// RF ID, 0000 to FFFF
-#define JDY40_DESIRED_DVID			"1337"												// Device ID, 0000 to FFFF
-#define JDY40_DESIRED_RFC			"064"												// RF Channel, 001 to 128
-#define JDY40_DESIRED_POWER			"9"													// RF Power, 0 to 9
-#define JDY40_DESIRED_MODE			"A0"												// Device mode, A0 - C0 - C1 - C2 - C3 - C4 - C5, RTFM for more details
+#define JDY40_DESIRED_BAUD			9600											// 2400 - 4800 - 9600 - 14400 - 19200
+#define JDY40_DESIRED_RFID			"1488"											// RF ID, 0000 to FFFF
+#define JDY40_DESIRED_DVID			"1337"											// Device ID, 0000 to FFFF
+#define JDY40_DESIRED_RFC			"064"											// RF Channel, 001 to 128
+#define JDY40_DESIRED_POWER			"9"												// RF Power, 0 to 9
+#define JDY40_DESIRED_MODE			"A0"											// Device mode, A0 - C0 - C1 - C2 - C3 - C4 - C5, RTFM for more details
 
 #define __JDY40_SLEEP_ON			HAL_GPIO_WritePin(RF_CS_GPIO_Port, RF_CS_Pin, GPIO_PIN_SET)			// Low == Active; High == Sleep
 #define __JDY40_SLEEP_OFF			HAL_GPIO_WritePin(RF_CS_GPIO_Port, RF_CS_Pin, GPIO_PIN_RESET)
@@ -67,23 +67,23 @@ typedef enum JDY40_StatusList
 uint8_t JDY40_Configure(void) {														// Configure the module using AT-commands
 	__JDY40_SLEEP_OFF;
 	__JDY40_CONFIGMODE_ON;
-	HAL_Delay(250);																	// Replace with osDelay
+	HAL_Delay(250);
 	if (!JDY40_SendCommands()) {
-		HAL_Delay(10);																	// Replace with osDelay
+		HAL_Delay(10);
 		__JDY40_CONFIGMODE_OFF;
 		HAL_Delay(5);
 		return OK;
 	}
 	HAL_Delay(100);
 	if (!JDY40_SendCommands()) {
-		HAL_Delay(10);																// Replace with osDelay
+		HAL_Delay(10);
 		__JDY40_CONFIGMODE_OFF;
-		HAL_Delay(5);																// Replace with osDelay
+		HAL_Delay(5);
 		return OK;
 	}
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	__JDY40_CONFIGMODE_OFF;
-	HAL_Delay(5);																	// Replace with osDelay
+	HAL_Delay(5);
 	return ERR_JDY40_CONFIGURE;
 }
 
@@ -91,17 +91,17 @@ uint8_t JDY40_Configure(void) {														// Configure the module using AT-co
 uint8_t JDY40_SendCommands(void) {													// Send configuration commands
 	uint8_t errCounter = 0;
 	errCounter += JDY40_SetBaud(JDY40_DESIRED_BAUD);
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	errCounter += JDY40_SetRFID(JDY40_DESIRED_RFID);
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	errCounter += JDY40_SetDVID(JDY40_DESIRED_DVID);
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	errCounter += JDY40_SetRFC(JDY40_DESIRED_RFC);
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	errCounter += JDY40_SetPOWE(JDY40_DESIRED_POWER);
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	errCounter += JDY40_SetCLSS(JDY40_DESIRED_MODE);
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	return errCounter;
 }
 
@@ -142,7 +142,7 @@ uint8_t JDY40_FindRightBaud(void) {													// Find correct baudrate using b
 		JDY40_UART_ChangeBaudRate(baudList[baudNumber-2]);
 		if (!JDY40_CheckPresence())
 			return baudNumber;
-		HAL_Delay(25);																// Replace with osDelay
+		HAL_Delay(25);
 	}
 	return ERR_NO_RESPONSE;
 }
@@ -151,9 +151,9 @@ uint8_t JDY40_SetBaud(uint16_t baud) {												// Set the module to desired b
 	JDY40_UART_ChangeBaudRate(baud);
 	if (!JDY40_CheckPresence())
 		return OK;
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	if (JDY40_FindRightBaud() != ERR_NO_RESPONSE) {
-		HAL_Delay(10);																// Replace with osDelay
+		HAL_Delay(10);
 		switch(baud) {
 		case 2400:
 			JDY40_UART_SendStringCRLF("AT+BAUD2");
@@ -175,7 +175,7 @@ uint8_t JDY40_SetBaud(uint16_t baud) {												// Set the module to desired b
 		}
 		if (!JDY40_UART_ReceiveStringCRLF(2) && !strcmp("OK", (char*)&rxBufUART)) {
 			JDY40_UART_ChangeBaudRate(baud);
-			HAL_Delay(400);															// Replace with osDelay
+			HAL_Delay(400);
 			JDY40_CheckPresence();													// This empty call is necessary because the module is a bit fucked up and it doesn't response correctly for the first time after the baudrate change
 			return !JDY40_CheckPresence() ? OK : ERR_NO_BAUD_ACK;
 		}
@@ -203,7 +203,7 @@ uint8_t JDY40_SetRFID(char *data) {
 		return ERR_RFID_LEN;
 	if (!JDY40_CheckRFID(data))
 			return OK;
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	char txBufUART[JDY40_UART_BUF_LENGTH];
 	for (uint8_t i=0; i<JDY40_UART_BUF_LENGTH; i++)
 			txBufUART[i] = 0;
@@ -231,7 +231,7 @@ uint8_t JDY40_SetDVID(char *data) {
 		return ERR_DVID_LEN;
 	if (!JDY40_CheckDVID(data))
 			return OK;
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	char txBufUART[JDY40_UART_BUF_LENGTH];
 	for (uint8_t i=0; i<JDY40_UART_BUF_LENGTH; i++)
 			txBufUART[i] = 0;
@@ -259,7 +259,7 @@ uint8_t JDY40_SetRFC(char *data) {
 		return ERR_RFC_LEN;
 	if (!JDY40_CheckRFC(data))
 			return OK;
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	char txBufUART[JDY40_UART_BUF_LENGTH];
 	for (uint8_t i=0; i<JDY40_UART_BUF_LENGTH; i++)
 			txBufUART[i] = 0;
@@ -287,7 +287,7 @@ uint8_t JDY40_SetPOWE(char *data) {
 		return ERR_POWE_LEN;
 	if (!JDY40_CheckPOWE(data))
 			return OK;
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	char txBufUART[JDY40_UART_BUF_LENGTH];
 	for (uint8_t i=0; i<JDY40_UART_BUF_LENGTH; i++)
 			txBufUART[i] = 0;
@@ -315,7 +315,7 @@ uint8_t JDY40_SetCLSS(char *data) {
 		return ERR_CLSS_LEN;
 	if (!JDY40_CheckCLSS(data))
 			return OK;
-	HAL_Delay(10);																	// Replace with osDelay
+	HAL_Delay(10);
 	char txBufUART[JDY40_UART_BUF_LENGTH];
 	for (uint8_t i=0; i<JDY40_UART_BUF_LENGTH; i++)
 			txBufUART[i] = 0;
