@@ -27,6 +27,13 @@
 
 #include "MLT-BT05.h"
 #include "JDY40.h"
+#include "queue.h"
+#include "task.h"
+
+
+#include <string.h>
+#include <stdio.h>
+
 
 #define __PWR_LED_ON		HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET)
 #define __PWR_LED_OFF		HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET)
@@ -37,6 +44,7 @@
 #define __RC_LED_OFF		HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET)
 #define __RC_LED_TOGGLE		HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin)
 
+#define SOFTWARE_DEBUG
 
 /* USER CODE END Includes */
 
@@ -67,20 +75,21 @@ TIM_HandleTypeDef htim3;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
+DMA_HandleTypeDef hdma_usart3_tx;
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128
+  .stack_size = 512
 };
 /* Definitions for bluetoothTask */
 osThreadId_t bluetoothTaskHandle;
 const osThreadAttr_t bluetoothTask_attributes = {
   .name = "bluetoothTask",
   .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128
+  .stack_size = 512
 };
 /* Definitions for radioTask */
 osThreadId_t radioTaskHandle;
@@ -108,20 +117,32 @@ osThreadId_t adcTaskHandle;
 const osThreadAttr_t adcTask_attributes = {
   .name = "adcTask",
   .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128
+  .stack_size = 256
+};
+/* Definitions for adcQueue */
+osMessageQueueId_t adcQueueHandle;
+const osMessageQueueAttr_t adcQueue_attributes = {
+  .name = "adcQueue"
 };
 /* USER CODE BEGIN PV */
 
 uint8_t radioIsConfigured = 0;
 uint8_t bluetoothIsConfigured = 0;
 
-uint32_t dbg = 0;
+uint32_t adcData = 0;
+
+#ifdef SOFTWARE_DEBUG
+#define USE_FULL_ASSERT
+volatile int16_t freeMem = 0;
+char dbgBuff[300] = {0};
+#endif
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_USART3_UART_Init(void);
@@ -142,6 +163,10 @@ void StartAdcTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
+	adcData += HAL_ADC_GetValue(&hadc1);
+}
 
 /* USER CODE END 0 */
 
@@ -174,6 +199,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
@@ -192,6 +218,8 @@ int main(void)
   	  bluetoothIsConfigured = 1;
   }
 
+  radioIsConfigured = 0;
+
   /* USER CODE END 2 */
   /* Init scheduler */
   osKernelInitialize();
@@ -207,6 +235,10 @@ int main(void)
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
+
+  /* Create the queue(s) */
+  /* creation of adcQueue */
+  adcQueueHandle = osMessageQueueNew (1, sizeof(uint16_t), &adcQueue_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -329,7 +361,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_55CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -558,6 +590,22 @@ static void MX_USART3_UART_Init(void)
 
 }
 
+/** 
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void) 
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
+
+}
+
 /**
   * @brief GPIO Initialization Function
   * @param None
@@ -613,6 +661,24 @@ void StartDefaultTask(void *argument)
 	/* Infinite loop */
 	for(;;)
 	{
+
+#ifdef SOFTWARE_DEBUG
+		freeMem = xPortGetFreeHeapSize();
+		vTaskList(dbgBuff);
+
+		uint16_t strBegin = 0;
+		uint16_t strEnd = 0;
+		uint8_t strToSend = {0};
+
+//		for (uint16_t i=0; i<299; i++) {
+//			if (dbgBuff[i] == 0)
+//				break;
+//
+//		}
+
+		osDelay(1999);
+#endif
+
 		osDelay(1);
 	}
   /* USER CODE END 5 */ 
@@ -629,6 +695,8 @@ void StartBluetoothTask(void *argument)
 {
   /* USER CODE BEGIN StartBluetoothTask */
 
+	uint16_t vbat = 0;
+
 	if (bluetoothIsConfigured)
 		__BLE_LED_ON;
 
@@ -640,7 +708,11 @@ void StartBluetoothTask(void *argument)
 			osDelay(200);
 			continue;
 		}
-
+		if (osMessageQueueGet(adcQueueHandle, &vbat, NULL, 0U) == osOK) {
+			char vbatStr[15] = {0};
+			sprintf(vbatStr, "Vbat = %d", vbat);
+			BT05_UART_SendStringCRLF_DMA(vbatStr);
+		}
 		osDelay(500);
 	}
 
@@ -704,11 +776,13 @@ void StartTelemetryTask(void *argument)
 void StartI2cTask(void *argument)
 {
   /* USER CODE BEGIN StartI2cTask */
+
   /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+	for(;;)
+	{
+		osDelay(1);
+	}
+
   /* USER CODE END StartI2cTask */
 }
 
@@ -722,11 +796,26 @@ void StartI2cTask(void *argument)
 void StartAdcTask(void *argument)
 {
   /* USER CODE BEGIN StartAdcTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+
+	uint8_t adcCounter = 0;
+	uint16_t adcResult = 0;
+
+	/* Infinite loop */
+	for(;;)
+	{
+		if (adcCounter < 49) {
+			HAL_ADC_Start_IT(&hadc1);
+			adcCounter++;
+		}
+		else {
+			adcResult = adcData / adcCounter;
+			osMessageQueuePut(adcQueueHandle, &adcResult, 0U, 0U);
+			adcData = 0;
+			adcCounter = 0;
+		}
+		osDelay(10);
+	}
+
   /* USER CODE END StartAdcTask */
 }
 

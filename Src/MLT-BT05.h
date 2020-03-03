@@ -14,6 +14,8 @@ uint8_t BT05_SendCommands(void);
 
 void BT05_UART_SendStringCRLF(char *data);
 
+void BT05_UART_SendStringCRLF_DMA(char *data);
+
 uint8_t BT05_UART_ReceiveStringCRLF(uint8_t len);
 
 void BT05_UART_ChangeBaudRate(uint32_t baud);

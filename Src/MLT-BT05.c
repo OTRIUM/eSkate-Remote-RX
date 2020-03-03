@@ -102,6 +102,14 @@ void BT05_UART_SendStringCRLF(char *data) {											// Send a string of chars 
 	HAL_UART_Transmit(&BT05_HUART_NUMBER, (uint8_t*)"\r\n", 2, 50);
 }
 
+void BT05_UART_SendStringCRLF_DMA(char *data) {										// Send a string of chars with CR&LF using DMA
+	uint8_t len = strlen(data);
+	HAL_UART_Transmit_DMA(&BT05_HUART_NUMBER, (uint8_t*)data, len);
+	while (HAL_UART_Transmit_DMA(&BT05_HUART_NUMBER, (uint8_t*)"\r\n", 2) != HAL_OK) {
+		osDelay(5);																	// REPLACE WITH HAL_Delay IF NOT USINNG FREERTOS
+	}
+}
+
 uint8_t BT05_UART_ReceiveStringCRLF(uint8_t len) {									// Receive N bytes of data
 	for (uint8_t i=0; i<BT05_UART_BUF_LENGTH; i++)
 		rxBufUART[i] = 0;
